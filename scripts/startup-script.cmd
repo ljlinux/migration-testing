@@ -1,1 +1,0 @@
-powerShell -windowstyle hidden C:\temp\windows_precheck.ps1 >> “C:\temp\startup_log_file.log”
