@@ -303,85 +303,6 @@ function main() {
         $queueTable.Rows.Add("Administrator Files Backup","Failed") | Out-Null        
 	}
     ##############################################
-    ######## Virtio Driver Installation ##########
-    ##############################################
-    $boolIsVirtIoPresent = isApplicationPresent -strApplicationName "Virtio-win*";
-	$boolIsAllowedVersionForVirtIo = $False;
-	if( $boolIsVirtIoPresent -eq $True ) {
-		$strCurrentVersionVirtIo = getVersion -strApplicationName "Virtio-win*";
-		Write-Host "`nFound VirtIO driver $strCurrentVersionVirtIo in system." -ForegroundColor Yellow;
-		$boolIsAllowedVersionForVirtIo = isValidVersion -strMinimumVersion $MINIMUM_VERSION_VIRTIO_DRIVERS -strCurrentVersion $strCurrentVersionVirtIo;
-		if ( $False -eq $boolIsAllowedVersionForVirtIo ) {
-			Write-Host "`nVersion $strCurrentVersionVirtIo of VirtIO driver is incompatible with migration process. Please Uninstall Virtio Driver and Re-run the script ." -ForegroundColor Yellow;
-			#Write-Host "`nVersion $strCurrentVersionVirtIo of VirtIO driver is incompatible with migration process. Need to install recent version of VirtIO driver." -ForegroundColor Yellow;
-	        $queueTable.Rows.Add("Virtio Driver","Failed") | Out-Null            	
-    } else {
-			Write-Host "`nVersion $strCurrentVersionVirtIo of VirtIO driver is compatible with migration process." -ForegroundColor Yellow;
-	        $queueTable.Rows.Add("Virtio Driver","Passed") | Out-Null            	
-    }
-	}
-	#if( $boolIsAllowedVersionForVirtIo -eq $False -or $boolIsVirtIoPresent -eq $False ) {
-	if( $boolIsVirtIoPresent -eq $False ) {
-		setSecurityProtocol;       
-		if( -not ( Test-Path $strVirtIoIsoPath ) ) {
-            Write-Output "Downloading Virtio Driver"
-            $downloadstatus = download_file -url $DOWNLOAD_URL_VIRTIO_DRIVERS -targetFile $strVirtIoIsoPath;
-            $trycount = 0
-            while (($downloadstatus -eq $False) -and ($trycount -ne 5 )) {
-                Write-Output "Trying to download again..."
-                $downloadstatus = download_file -url $DOWNLOAD_URL_VIRTIO_DRIVERS -targetFile $strVirtIoIsoPath;
-                $trycount =    $trycount + 1
-                Start-Sleep -s 10
-            }
-            if ($downloadstatus -eq $False) {
-                    Write-Host "`nDownload failed, Please download virtio driver manually from $DOWNLOAD_URL_VIRTIO_DRIVERS or try running scirpt after sometime later" -ForegroundColor Red;
-                    $queueTable.Rows.Add("Virtio Driver Download","Failed") | Out-Null                    
-            }
-        }
-        
-         if( Test-Path  $strVirtIoCertPath ) {
-            Write-Output "Downloading Cert for Virtio Driver"
-            $downloadstatus = Invoke-WebRequest $DOWNLOAD_VIRTIO_CERT -OutFile "$strVirtIoCertPath\$strVirtIoCertZip"
-            $trycount = 0
-            while (($downloadstatus -eq $False) -and ($trycount -ne 5 )) {
-                Write-Output "Trying to download again..."
-                $downloadstatus = Invoke-WebRequest $DOWNLOAD_VIRTIO_CERT -OutFile "$strVirtIoCertPath\$strVirtIoCertZip"
-                $trycount =    $trycount + 1
-                Start-Sleep -s 10
-            }
-            if ($downloadstatus -eq $False) {
-                    Write-Host "`nDownload failed, Try to import the certificate manually from  $DOWNLOAD_VIRTIO_CERT or try running scirpt after sometime later" -ForegroundColor Red;
-                    $queueTable.Rows.Add("Installing Cert for VirtIo","Failed") | Out-Null                    
-            }
-        } 
-                
-		if( Test-Path $strVirtIoIsoPath ) {
-            $strDriveLetter = (Get-DiskImage $strVirtIoIsoPath | Get-Volume).DriveLetter
-            if ( -not ($null -eq $strDriveLetter)){                               
-                $strVirtIoPath = "{0}:\virtio-win-gt-x64.msi" -f $strDriveLetter;                
-            }else{
-				$mountResult = Mount-DiskImage -ImagePath $strVirtIoIsoPath -PassThru | Get-DiskImage | Get-Volume;
-                $strDriveLetter = $mountResult.DriveLetter
-                $strVirtIoPath = "{0}:\virtio-win-gt-x64.msi" -f $strDriveLetter; 
-			} 
-            if (Test-Path $strVirtIoPath ){
-			$strDriveLetter = "{0}:" -f $strDriveLetter; 
-			$strCertificatePath = getCertificatePath -strDriveLetter $strDriveLetter;
-            extractCertificate -strCertifiateDir $strCertificatePath;
-			installCertificate -strCertificateDir $strCertificatePath;
-			$virtioInstallStatus = installSoftware -strSourcePath $strVirtIoPath -strInstalledPath $strVirtIoInstalledPath;
-            }
-            else{$virtioInstallStatus = "Failed"}
-            if ($virtioInstallStatus -eq "Passed"){
-                $queueTable.Rows.Add("Virtio Driver","Passed") | Out-Null                
-            }else{
-                $queueTable.Rows.Add("Virtio Driver","Failed") | Out-Null
-            }
-            Dismount-DiskImage -ImagePath $strVirtIoIsoPath;
-            Start-Sleep -s 2
-		}
-	}
-    ##############################################
     ####### CloudBase-Init Installation ##########
     ##############################################
 	$boolIsCouldInitPresent = isApplicationPresent -strApplicationName "Cloudbase-Init*";
@@ -557,6 +478,85 @@ plugins=cloudbaseinit.plugins.common.mtu.MTUPlugin,
             	$queueTable.Rows.Add("CloudBase-Init Config","Failed") | Out-Null 
          	}
     	}
+	}	
+    ##############################################
+    ######## Virtio Driver Installation ##########
+    ##############################################
+    $boolIsVirtIoPresent = isApplicationPresent -strApplicationName "Virtio-win*";
+	$boolIsAllowedVersionForVirtIo = $False;
+	if( $boolIsVirtIoPresent -eq $True ) {
+		$strCurrentVersionVirtIo = getVersion -strApplicationName "Virtio-win*";
+		Write-Host "`nFound VirtIO driver $strCurrentVersionVirtIo in system." -ForegroundColor Yellow;
+		$boolIsAllowedVersionForVirtIo = isValidVersion -strMinimumVersion $MINIMUM_VERSION_VIRTIO_DRIVERS -strCurrentVersion $strCurrentVersionVirtIo;
+		if ( $False -eq $boolIsAllowedVersionForVirtIo ) {
+			Write-Host "`nVersion $strCurrentVersionVirtIo of VirtIO driver is incompatible with migration process. Please Uninstall Virtio Driver and Re-run the script ." -ForegroundColor Yellow;
+			#Write-Host "`nVersion $strCurrentVersionVirtIo of VirtIO driver is incompatible with migration process. Need to install recent version of VirtIO driver." -ForegroundColor Yellow;
+	        $queueTable.Rows.Add("Virtio Driver","Failed") | Out-Null            	
+    } else {
+			Write-Host "`nVersion $strCurrentVersionVirtIo of VirtIO driver is compatible with migration process." -ForegroundColor Yellow;
+	        $queueTable.Rows.Add("Virtio Driver","Passed") | Out-Null            	
+    }
+	}
+	#if( $boolIsAllowedVersionForVirtIo -eq $False -or $boolIsVirtIoPresent -eq $False ) {
+	if( $boolIsVirtIoPresent -eq $False ) {
+		setSecurityProtocol;       
+		if( -not ( Test-Path $strVirtIoIsoPath ) ) {
+            Write-Output "Downloading Virtio Driver"
+            $downloadstatus = download_file -url $DOWNLOAD_URL_VIRTIO_DRIVERS -targetFile $strVirtIoIsoPath;
+            $trycount = 0
+            while (($downloadstatus -eq $False) -and ($trycount -ne 5 )) {
+                Write-Output "Trying to download again..."
+                $downloadstatus = download_file -url $DOWNLOAD_URL_VIRTIO_DRIVERS -targetFile $strVirtIoIsoPath;
+                $trycount =    $trycount + 1
+                Start-Sleep -s 10
+            }
+            if ($downloadstatus -eq $False) {
+                    Write-Host "`nDownload failed, Please download virtio driver manually from $DOWNLOAD_URL_VIRTIO_DRIVERS or try running scirpt after sometime later" -ForegroundColor Red;
+                    $queueTable.Rows.Add("Virtio Driver Download","Failed") | Out-Null                    
+            }
+        }
+        
+         if( Test-Path  $strVirtIoCertPath ) {
+            Write-Output "Downloading Cert for Virtio Driver"
+            $downloadstatus = Invoke-WebRequest $DOWNLOAD_VIRTIO_CERT -OutFile "$strVirtIoCertPath\$strVirtIoCertZip"
+            $trycount = 0
+            while (($downloadstatus -eq $False) -and ($trycount -ne 5 )) {
+                Write-Output "Trying to download again..."
+                $downloadstatus = Invoke-WebRequest $DOWNLOAD_VIRTIO_CERT -OutFile "$strVirtIoCertPath\$strVirtIoCertZip"
+                $trycount =    $trycount + 1
+                Start-Sleep -s 10
+            }
+            if ($downloadstatus -eq $False) {
+                    Write-Host "`nDownload failed, Try to import the certificate manually from  $DOWNLOAD_VIRTIO_CERT or try running scirpt after sometime later" -ForegroundColor Red;
+                    $queueTable.Rows.Add("Installing Cert for VirtIo","Failed") | Out-Null                    
+            }
+        } 
+                
+		if( Test-Path $strVirtIoIsoPath ) {
+            $strDriveLetter = (Get-DiskImage $strVirtIoIsoPath | Get-Volume).DriveLetter
+            if ( -not ($null -eq $strDriveLetter)){                               
+                $strVirtIoPath = "{0}:\virtio-win-gt-x64.msi" -f $strDriveLetter;                
+            }else{
+				$mountResult = Mount-DiskImage -ImagePath $strVirtIoIsoPath -PassThru | Get-DiskImage | Get-Volume;
+                $strDriveLetter = $mountResult.DriveLetter
+                $strVirtIoPath = "{0}:\virtio-win-gt-x64.msi" -f $strDriveLetter; 
+			} 
+            if (Test-Path $strVirtIoPath ){
+			$strDriveLetter = "{0}:" -f $strDriveLetter; 
+			$strCertificatePath = getCertificatePath -strDriveLetter $strDriveLetter;
+            extractCertificate -strCertifiateDir $strCertificatePath;
+			installCertificate -strCertificateDir $strCertificatePath;
+			$virtioInstallStatus = installSoftware -strSourcePath $strVirtIoPath -strInstalledPath $strVirtIoInstalledPath;
+            }
+            else{$virtioInstallStatus = "Failed"}
+            if ($virtioInstallStatus -eq "Passed"){
+                $queueTable.Rows.Add("Virtio Driver","Passed") | Out-Null                
+            }else{
+                $queueTable.Rows.Add("Virtio Driver","Failed") | Out-Null
+            }
+            Dismount-DiskImage -ImagePath $strVirtIoIsoPath;
+            Start-Sleep -s 2
+		}
 	}
  summary      
 }
