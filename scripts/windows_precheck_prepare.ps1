@@ -10,6 +10,6 @@ $TaskFilePath = "https://github.com/ljlinux/migration-testing/blob/main/scripts/
 $StartScript = "startup_script.bat"
 $StartScriptPath = "C:\Users\Administrator\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup"
 New-Item -ItemType "directory" -Path $WorkDirPath | Out-Null;
-Net.ServicePointManager]::SecurityProtocol = "tls12, tls11, tls"
+[Net.ServicePointManager]::SecurityProtocol = "tls12, tls11, tls"
 Invoke-WebRequest -Uri $PreCheckFilePath -OutFile $WorkDirPath\$PreCheckScript -UseBasicParsing
 Invoke-WebRequest -Uri $TaskFilePath -OutFile $StartScriptPath\$StartScript -UseBasicParsing
