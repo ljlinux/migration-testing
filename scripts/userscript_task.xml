@@ -13,7 +13,7 @@
   <Principals>
     <Principal id="Author">
       <UserId>COMPUTERNAME\Administrator</UserId>
-      <LogonType>S4U</LogonType
+      <LogonType>InteractiveToken</LogonType>
       <RunLevel>HighestAvailable</RunLevel>
     </Principal>
   </Principals>
